@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use clap::Parser;
-use module_manager_rs::file::{FileContents, Files};
+use module_manager_rs::file::{File, Files};
 use module_manager_rs::patcher::Patcher;
 use module_manager_rs::raw_patch::RawPatches;
 use walkdir::WalkDir;
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !cfg.is_file() || cfg.extension() != Some(OsStr::new("cfg")) {
                 continue;
             }
-            file_storage.0.push(FileContents {
+            file_storage.0.push(File {
                 path: Rc::from(&*cfg),
                 contents: std::fs::read_to_string(cfg)?,
             });
@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut raw_patches = RawPatches::default();
         for cfg in &file_storage {
             log::info!("parsing {:?}", cfg.path);
-            raw_patches.files.0.push(FileContents {
+            raw_patches.files.0.push(File {
                 path: Rc::clone(&cfg.path),
                 contents: ksp_cfg_formatter::parse_to_ast(&cfg.contents)?,
             })

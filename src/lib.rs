@@ -1,18 +1,16 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
-use std::rc::Rc;
 
 #[macro_use]
 pub mod pass;
 pub mod config_node;
 pub mod database;
+pub mod file;
+pub mod key_patch;
+pub mod node_patch;
 pub mod operator;
-pub mod raw_patch;
 pub mod patch_set;
 pub mod patcher;
-pub mod file;
-pub mod node_patch;
-pub mod key_patch;
+pub mod raw_patch;
 
 #[derive(Clone, PartialEq, Debug, thiserror::Error)]
 pub enum PatchingError {
@@ -23,5 +21,3 @@ pub enum PatchingError {
 }
 
 pub type Result<T = ()> = std::result::Result<T, PatchingError>;
-
-pub type UrlConfig<T> = HashMap<Rc<std::path::Path>, T>;

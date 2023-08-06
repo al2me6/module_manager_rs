@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::file::{FileContents, Files};
+use crate::file::{File, Files};
 use crate::node_patch::NodePatch;
 use crate::pass::Pass;
 use crate::raw_patch::WorkingPatchSet;
@@ -28,7 +28,7 @@ impl<'a> From<WorkingPatchSet<'a>> for PatchSet<'a> {
                 let files = Files(
                     file_contents
                         .into_iter()
-                        .map(|(path, contents)| FileContents { path, contents })
+                        .map(|(path, contents)| File { path, contents })
                         .collect(),
                 );
                 (pass, files)
