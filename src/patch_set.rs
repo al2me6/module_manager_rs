@@ -28,7 +28,7 @@ impl<'a> From<WorkingPatchSet<'a>> for PatchSet<'a> {
                 let files = Files(
                     file_contents
                         .into_iter()
-                        .map(|(path, contents)| File { path, contents })
+                        .map(|(path, contents)| File::new(path, contents))
                         .collect(),
                 );
                 (pass, files)

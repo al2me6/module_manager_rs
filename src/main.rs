@@ -31,10 +31,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !cfg.is_file() || cfg.extension() != Some(OsStr::new("cfg")) {
                 continue;
             }
-            file_storage.0.push(File {
-                path: Rc::from(&*cfg),
-                contents: std::fs::read_to_string(cfg)?,
-            });
+            file_storage
+                .0
+                .push(File::new(Rc::from(&*cfg), std::fs::read_to_string(cfg)?));
         }
         file_storage
     };
@@ -42,10 +41,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut raw_patches = RawPatches::default();
         for cfg in &file_storage {
             log::info!("parsing {:?}", cfg.path);
-            raw_patches.files.0.push(File {
-                path: Rc::clone(&cfg.path),
-                contents: ksp_cfg_formatter::parse_to_ast(&cfg.contents)?,
-            })
+            raw_patches.files.0.push(File::new(
+                Rc::clone(&cfg.path),
+                ksp_cfg_formatter::parse_to_ast(&cfg.contents)?,
+            ))
         }
         raw_patches
     };
@@ -53,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let patcher = Patcher::new(raw_patches, std::iter::empty())?;
     let database = patcher.execute()?;
 
-    println!("{database:?}");
+    println!("{database:#?}");
 
     Ok(())
 }

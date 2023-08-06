@@ -1,19 +1,25 @@
 use std::borrow::Cow;
-use std::collections::LinkedList;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Item<'a, T> {
     pub name: &'a str,
     pub value: T,
 }
 
-pub type ConfigNode<'a> = Item<'a, NodeContents<'a>>;
-pub type ConfigKey<'a> = Item<'a, Cow<'a, str>>;
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct NodeContents<'a> {
-    pub nodes: LinkedList<ConfigNode<'a>>,
-    pub keys: LinkedList<ConfigKey<'a>>,
+    pub nodes: Vec<ConfigNodeOrHole<'a>>,
+    pub keys: Vec<ConfigKey<'a>>,
+}
+
+pub type ConfigNode<'a> = Item<'a, NodeContents<'a>>;
+pub type ConfigNodeOrHole<'a> = Option<ConfigNode<'a>>;
+pub type ConfigKey<'a> = Item<'a, Cow<'a, str>>;
+
+impl<'a, T> Item<'a, T> {
+    pub fn new(name: &'a str, value: T) -> Self {
+        Self { name, value }
+    }
 }
 
 impl<'a> NodeContents<'a> {

@@ -1,7 +1,8 @@
+mod node;
+
 use std::collections::HashSet;
 
 use crate::database::Database;
-use crate::node_patch::NodePatch;
 use crate::pass::Pass;
 use crate::patch_set::PatchSet;
 use crate::raw_patch::RawPatches;
@@ -40,7 +41,7 @@ impl<'a> Patcher<'a> {
             log::info!("running pass {pass}");
             for file in files {
                 for patch in &file.contents {
-                    Self::evaluate_top_level_patch(patch, &mut self.database)?;
+                    Self::evaluate_top_level_patch(file.path.clone(), patch, &mut self.database)?;
                 }
             }
         }
@@ -63,7 +64,13 @@ impl<'a> Patcher<'a> {
             // N.B.: the :LAST[ident] passes are not anchored to declared passes, but are merely
             // naked identifiers used for sorting.
             Pass::Default | Pass::First | Pass::For(_) | Pass::Last(_) | Pass::Final => true,
-            Pass::Before(pass) | Pass::After(pass) => declared_passes.contains(&*pass.0),
+            pass @ (Pass::Before(ident) | Pass::After(ident)) => {
+                let exists = declared_passes.contains(&*ident.0);
+                if !exists {
+                    log::info!("pruning pass {pass}, as :FOR[{ident}] does not exist");
+                }
+                exists
+            }
         })
     }
 
@@ -75,9 +82,5 @@ impl<'a> Patcher<'a> {
                     .retain_mut(|node| operator::needs::prune_node_recurse(node, declared_passes))
             }
         }
-    }
-
-    fn evaluate_top_level_patch(patch: &NodePatch, database: &mut Database) -> Result {
-        Ok(())
     }
 }

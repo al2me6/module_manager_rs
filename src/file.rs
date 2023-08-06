@@ -50,3 +50,9 @@ impl<'a, T> IntoIterator for &'a mut Files<T> {
         self.0.iter_mut()
     }
 }
+
+impl<T> File<T> {
+    pub fn new(path: Rc<Path>, contents: T) -> Self {
+        Self { path, contents }
+    }
+}
