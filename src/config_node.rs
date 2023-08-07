@@ -1,4 +1,6 @@
 use std::borrow::Cow;
+use std::path::Path;
+use std::rc::Rc;
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Item<'a, T> {
@@ -8,12 +10,12 @@ pub struct Item<'a, T> {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct NodeContents<'a> {
-    pub nodes: Vec<ConfigNodeOrHole<'a>>,
+    pub file_path: Option<Rc<Path>>,
+    pub nodes: Vec<Option<ConfigNode<'a>>>,
     pub keys: Vec<ConfigKey<'a>>,
 }
 
 pub type ConfigNode<'a> = Item<'a, NodeContents<'a>>;
-pub type ConfigNodeOrHole<'a> = Option<ConfigNode<'a>>;
 pub type ConfigKey<'a> = Item<'a, Cow<'a, str>>;
 
 impl<'a, T> Item<'a, T> {
@@ -22,7 +24,17 @@ impl<'a, T> Item<'a, T> {
     }
 }
 
+impl<'a> ConfigNode<'a> {
+    pub fn is_top_level(&self) -> bool {
+        self.value.is_top_level()
+    }
+}
+
 impl<'a> NodeContents<'a> {
+    pub fn is_top_level(&self) -> bool {
+        self.file_path.is_some()
+    }
+
     pub fn name_key(&self) -> Option<&str> {
         self.keys
             .iter()

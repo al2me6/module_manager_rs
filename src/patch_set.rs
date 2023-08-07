@@ -1,11 +1,11 @@
 use itertools::Itertools;
 
-use crate::file::{File, Files};
+use crate::file::File;
 use crate::node_patch::NodePatch;
 use crate::pass::Pass;
 use crate::raw_patch::WorkingPatchSet;
 
-pub type PatchesInPass<'a> = (Pass<'a>, Files<Vec<NodePatch<'a>>>);
+pub type PatchesInPass<'a> = (Pass<'a>, Vec<File<Vec<NodePatch<'a>>>>);
 
 #[derive(Clone, Debug, Default)]
 pub struct PatchSet<'a>(pub Vec<PatchesInPass<'a>>);
@@ -25,18 +25,16 @@ impl<'a> From<WorkingPatchSet<'a>> for PatchSet<'a> {
         let mut passes = value
             .into_iter()
             .map(|(pass, file_contents)| {
-                let files = Files(
-                    file_contents
-                        .into_iter()
-                        .map(|(path, contents)| File::new(path, contents))
-                        .collect(),
-                );
+                let files = file_contents
+                    .into_iter()
+                    .map(|(path, contents)| File::new(path, contents))
+                    .collect_vec();
                 (pass, files)
             })
             .collect_vec();
         passes.sort_by(|(a, _), (b, _)| a.cmp(b));
         for (_, files) in &mut passes {
-            files.sort();
+            files.sort_by(|a, b| a.path.cmp(&b.path));
         }
         Self(passes)
     }

@@ -13,11 +13,12 @@ pub mod config_node;
 pub mod database;
 pub mod file;
 pub mod key_patch;
+pub mod module_manager;
 pub mod node_patch;
 pub mod operator;
 pub mod patch_set;
-pub mod patcher;
 pub mod raw_patch;
+pub mod searcher;
 
 use std::borrow::Cow;
 use std::path::Path;
@@ -48,6 +49,10 @@ impl std::fmt::Display for RuntimeError {
             }
         }
     }
+}
+
+pub(crate) fn internal_error<T>(msg: impl Into<Cow<'static, str>>) -> Result<T> {
+    Err(PatchingError::Internal(msg.into()))
 }
 
 pub type Result<T = ()> = std::result::Result<T, PatchingError>;

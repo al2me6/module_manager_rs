@@ -1,3 +1,4 @@
+pub mod has;
 pub mod needs;
 
 use ksp_cfg_formatter::parser::{self, Path};

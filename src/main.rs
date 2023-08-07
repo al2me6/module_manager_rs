@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use clap::Parser;
-use module_manager_rs::file::{File, Files};
-use module_manager_rs::patcher::Patcher;
+use module_manager_rs::file::File;
+use module_manager_rs::module_manager::ModuleManager;
 use module_manager_rs::raw_patch::RawPatches;
 use walkdir::WalkDir;
 
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::info!("GameData path: {full_path:?}");
 
     let file_storage = {
-        let mut file_storage = Files::default();
+        let mut file_storage = vec![];
 
         for entry in WalkDir::new(full_path).sort_by_file_name() {
             let cfg = entry?.into_path();
@@ -31,9 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !cfg.is_file() || cfg.extension() != Some(OsStr::new("cfg")) {
                 continue;
             }
-            file_storage
-                .0
-                .push(File::new(Rc::from(&*cfg), std::fs::read_to_string(cfg)?));
+            file_storage.push(File::new(Rc::from(&*cfg), std::fs::read_to_string(cfg)?));
         }
         file_storage
     };
@@ -41,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut raw_patches = RawPatches::default();
         for cfg in &file_storage {
             log::info!("parsing {:?}", cfg.path);
-            raw_patches.files.0.push(File::new(
+            raw_patches.files.push(File::new(
                 Rc::clone(&cfg.path),
                 ksp_cfg_formatter::parse_to_ast(&cfg.contents)?,
             ))
@@ -49,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         raw_patches
     };
 
-    let patcher = Patcher::new(raw_patches, std::iter::empty())?;
+    let patcher = ModuleManager::new(raw_patches, std::iter::empty())?;
     let database = patcher.execute()?;
 
     println!("{database:#?}");

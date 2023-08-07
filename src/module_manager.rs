@@ -1,20 +1,21 @@
-mod node;
+pub mod patcher;
 
 use std::collections::HashSet;
 
 use crate::database::Database;
+use crate::module_manager::patcher::Patcher;
 use crate::pass::Pass;
 use crate::patch_set::PatchSet;
 use crate::raw_patch::RawPatches;
 use crate::{operator, Result};
 
-pub struct Patcher<'a> {
+pub struct ModuleManager<'a> {
     dll_passes: HashSet<String>,
     patches: PatchSet<'a>,
     database: Database<'a>,
 }
 
-impl<'a> Patcher<'a> {
+impl<'a> ModuleManager<'a> {
     pub fn new(
         raw_patches: RawPatches<'a>,
         dll_names: impl Iterator<Item = &'a str>,
@@ -41,7 +42,7 @@ impl<'a> Patcher<'a> {
             log::info!("running pass {pass}");
             for file in files {
                 for patch in &file.contents {
-                    Self::evaluate_top_level_patch(file.path.clone(), patch, &mut self.database)?;
+                    Patcher::new(&mut self.database, file.path.clone(), patch).evaluate()?;
                 }
             }
         }

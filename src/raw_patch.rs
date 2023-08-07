@@ -3,15 +3,15 @@ use std::rc::Rc;
 
 use ksp_cfg_formatter::parser::{Document, NodeItem};
 
-use crate::file::Files;
+use crate::file::File;
 use crate::node_patch::NodePatch;
 use crate::pass::Pass;
 use crate::patch_set::PatchSet;
-use crate::{PatchingError, Result};
+use crate::{internal_error, Result};
 
 #[derive(Debug, Default)]
 pub struct RawPatches<'a> {
-    pub files: Files<Document<'a>>,
+    pub files: Vec<File<Document<'a>>>,
 }
 
 pub type WorkingPatchSet<'a> = HashMap<Pass<'a>, HashMap<Rc<std::path::Path>, Vec<NodePatch<'a>>>>;
@@ -38,9 +38,7 @@ impl<'a> RawPatches<'a> {
                             .or_default()
                             .push(NodePatch::from_cst(node, true)?);
                     }
-                    NodeItem::KeyVal(_) => {
-                        Err(PatchingError::Internal("top-level keys are illegal".into()))?
-                    }
+                    NodeItem::KeyVal(_) => internal_error("top-level keys are illegal")?,
                     NodeItem::Comment(_) | NodeItem::EmptyLine => {}
                 }
             }
@@ -57,9 +55,7 @@ impl<'a> RawPatches<'a> {
                     NodeItem::Node(node) => {
                         passes.insert(node.pass.into());
                     }
-                    NodeItem::KeyVal(_) => {
-                        Err(PatchingError::Internal("top-level keys are illegal".into()))?
-                    }
+                    NodeItem::KeyVal(_) => internal_error("top-level keys are illegal")?,
                     NodeItem::Comment(_) | NodeItem::EmptyLine => {}
                 }
             }
