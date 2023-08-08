@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let patcher = ModuleManager::new(raw_patches, std::iter::empty())?;
     let database = patcher.execute()?;
 
-    println!("{database:#?}");
+    println!("{database}");
 
     Ok(())
 }

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::Formatter;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -27,6 +28,51 @@ impl<'a, T> Item<'a, T> {
 impl<'a> ConfigNode<'a> {
     pub fn is_top_level(&self) -> bool {
         self.value.is_top_level()
+    }
+
+    pub fn fmt_into(
+        &self,
+        f: &mut Formatter<'_>,
+        indent: usize,
+        indent_size: usize,
+    ) -> std::fmt::Result {
+        writeln!(
+            f,
+            "{0:1$}{name}",
+            "",
+            indent_size * indent,
+            name = self.name
+        )?;
+        writeln!(f, "{0:1$}{{", "", indent_size * indent)?;
+        for key in &self.value.keys {
+            key.fmt_into(f, indent + 1, indent_size)?;
+        }
+        for node in &self.value.nodes {
+            node.as_ref()
+                .unwrap()
+                .fmt_into(f, indent + 1, indent_size)?;
+        }
+        writeln!(f, "{0:1$}}}", "", indent_size * indent)?;
+        Ok(())
+    }
+}
+
+impl<'a> ConfigKey<'a> {
+    pub fn fmt_into(
+        &self,
+        f: &mut Formatter<'_>,
+        indent: usize,
+        indent_size: usize,
+    ) -> std::fmt::Result {
+        writeln!(
+            f,
+            "{0:1$}{name} = {value}",
+            "",
+            indent_size * indent,
+            name = self.name,
+            value = self.value
+        )?;
+        Ok(())
     }
 }
 

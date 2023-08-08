@@ -1,4 +1,6 @@
-use crate::config_node::ConfigNode;
+use std::fmt::{Display, Formatter};
+
+use crate::config_node::{ConfigKey, ConfigNode, NodeContents};
 use crate::{internal_error, Result};
 
 #[derive(Clone, Debug, Default)]
@@ -10,6 +12,36 @@ impl<'a> Database<'a> {
             internal_error("attempted to insert top-level-node nor marked as such")?;
         }
         self.0.push(Some(top_level_node));
+        Ok(())
+    }
+}
+
+impl<'a> Display for Database<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for node in &self.0 {
+            let node = node.as_ref().unwrap();
+            let wrapper = ConfigNode::new(
+                "URL_CONFIG",
+                NodeContents {
+                    file_path: None,
+                    nodes: vec![Some(node.clone())],
+                    keys: vec![ConfigKey::new(
+                        "parentUrl",
+                        node.value
+                            .file_path
+                            .as_ref()
+                            .unwrap()
+                            .to_string_lossy()
+                            .rsplit_once("GameData")
+                            .unwrap()
+                            .1
+                            .to_owned()
+                            .into(),
+                    )],
+                },
+            );
+            wrapper.fmt_into(f, 0, 4)?;
+        }
         Ok(())
     }
 }
