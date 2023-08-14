@@ -1,10 +1,10 @@
 use std::fmt::{Display, Formatter};
 
-use crate::config_node::{ConfigKey, ConfigNode, NodeContents};
+use crate::config_node::{ConfigKey, ConfigNode, NodeContents, NodeList};
 use crate::{internal_error, Result};
 
 #[derive(Clone, Debug, Default)]
-pub struct Database<'a>(pub Vec<Option<ConfigNode<'a>>>);
+pub struct Database<'a>(pub NodeList<'a>);
 
 impl<'a> Database<'a> {
     pub fn insert(&mut self, top_level_node: ConfigNode<'a>) -> Result {

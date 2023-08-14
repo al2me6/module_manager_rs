@@ -77,16 +77,17 @@ where
         mut node: ConfigNode<'a>,
     ) -> Result<ConfigNode<'a>> {
         for node_patch in &patch.node_patches {
+            if node_patch.operation == Op::Insert {
+                // TODO: recurse??
+                let child = evaluate_node_as_pure_data(self.file_path.clone(), node_patch)?;
+                // TODO: insertion order.
+                node.value.nodes.push(Some(child));
+                continue;
+            }
             let mut searcher = make_searcher(node_patch);
             while let Some(mut target) = searcher.search(&mut node.value.nodes)? {
                 match &node_patch.operation {
-                    Op::Insert => {
-                        // TODO: recurse??
-                        let child = evaluate_node_as_pure_data(self.file_path.clone(), node_patch)?;
-                        // TODO: insertion order.
-                        target.value.nodes.push(Some(child));
-                        searcher.replace(&mut node.value.nodes, target)?;
-                    }
+                    Op::Insert => unreachable!(),
                     Op::Copy => {}
                     Op::CopyFrom { .. } => {}
                     Op::Edit => {
