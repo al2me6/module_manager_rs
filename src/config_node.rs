@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::fmt::Formatter;
+use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::rc::Rc;
 
@@ -59,6 +59,12 @@ impl<'a> ConfigNode<'a> {
     }
 }
 
+impl<'a> Display for ConfigNode<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+      self.fmt_into(f, 0, 4)
+    }
+}
+
 impl<'a> ConfigKey<'a> {
     pub fn fmt_into(
         &self,
@@ -75,6 +81,12 @@ impl<'a> ConfigKey<'a> {
             value = self.value
         )?;
         Ok(())
+    }
+}
+
+impl<'a> Display for ConfigKey<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+      self.fmt_into(f, 0, 4)
     }
 }
 
