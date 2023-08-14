@@ -55,9 +55,7 @@ where
                             // TODO: run inside of copy.
                         }
                         Op::Edit => {
-                            for node_patch in &self.patch.node_patches {
-                                target = self.evaluate_recurse(node_patch, target)?;
-                            }
+                            target = self.evaluate_recurse(self.patch, target)?;
                             searcher.replace(&mut self.database.0, target)?;
                         }
                         Op::EditOrCreate => {}
@@ -79,7 +77,7 @@ where
         mut node: ConfigNode<'a>,
     ) -> Result<ConfigNode<'a>> {
         for node_patch in &patch.node_patches {
-            let mut searcher = make_searcher(patch);
+            let mut searcher = make_searcher(node_patch);
             while let Some(mut target) = searcher.search(&mut node.value.nodes)? {
                 match &node_patch.operation {
                     Op::Insert => {
