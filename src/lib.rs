@@ -18,7 +18,6 @@ pub mod node_patch;
 pub mod operator;
 pub mod patch_set;
 pub mod raw_patch;
-pub mod searcher;
 
 use std::borrow::Cow;
 use std::path::Path;

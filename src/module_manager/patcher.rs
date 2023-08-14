@@ -1,11 +1,11 @@
 use std::path::Path;
 use std::rc::Rc;
 
+use super::searcher::Searcher;
 use crate::config_node::{ConfigKey, ConfigNode};
 use crate::database::Database;
 use crate::node_patch::NodePatch;
 use crate::operator::Op;
-use crate::searcher::Searcher;
 use crate::{operator, Result};
 
 pub struct Patcher<'a, 'b> {
@@ -46,22 +46,26 @@ where
             Op::CopyFrom { .. } => {}
             Op::Copy | Op::Edit | Op::Delete | Op::EditOrCreate | Op::DefaultValue => {
                 let mut searcher = make_searcher(self.patch);
-                while let Some(mut target) = searcher.search(&mut self.database.0)? {
+                while let Some((handle, mut target)) = searcher.search(&mut self.database.0)? {
                     match &self.patch.operation {
                         Op::Copy => {
                             let copy = target.clone();
-                            searcher.replace(&mut self.database.0, target)?;
+                            searcher = handle.replace(&mut self.database.0, target)?;
                             searcher.push(&mut self.database.0, copy)?;
                             // TODO: run inside of copy.
                         }
                         Op::Edit => {
                             target = self.evaluate_recurse(self.patch, target)?;
-                            searcher.replace(&mut self.database.0, target)?;
+                            searcher = handle.replace(&mut self.database.0, target)?;
                         }
-                        Op::EditOrCreate => {}
-                        Op::DefaultValue => {}
+                        Op::EditOrCreate => {
+                            searcher = handle.replace(&mut self.database.0, target)?;
+                        }
+                        Op::DefaultValue => {
+                            searcher = handle.replace(&mut self.database.0, target)?;
+                        }
                         Op::Delete => {
-                            searcher.delete_active(&mut self.database.0)?;
+                            searcher = handle.delete(&mut self.database.0)?;
                         }
                         Op::Insert | Op::Rename | Op::CopyFrom { .. } => unreachable!(),
                     }
@@ -85,21 +89,33 @@ where
                 continue;
             }
             let mut searcher = make_searcher(node_patch);
-            while let Some(mut target) = searcher.search(&mut node.value.nodes)? {
+            while let Some((handle, mut target)) = searcher.search(&mut node.value.nodes)? {
                 match &node_patch.operation {
                     Op::Insert => unreachable!(),
-                    Op::Copy => {}
-                    Op::CopyFrom { .. } => {}
+                    Op::Copy => {
+                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                    }
+                    Op::CopyFrom { .. } => {
+                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                    }
                     Op::Edit => {
                         self.parents.push(node);
                         target = self.evaluate_recurse(node_patch, target)?;
                         node = self.parents.pop().unwrap();
-                        searcher.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.value.nodes, target)?;
                     }
-                    Op::EditOrCreate => {}
-                    Op::DefaultValue => {}
-                    Op::Delete => {}
-                    Op::Rename => {}
+                    Op::EditOrCreate => {
+                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                    }
+                    Op::DefaultValue => {
+                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                    }
+                    Op::Delete => {
+                        searcher = handle.delete(&mut node.value.nodes)?;
+                    }
+                    Op::Rename => {
+                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                    }
                 }
             }
         }

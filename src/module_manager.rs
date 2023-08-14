@@ -1,4 +1,5 @@
 pub mod patcher;
+pub mod searcher;
 
 use std::collections::HashSet;
 
