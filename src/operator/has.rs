@@ -9,7 +9,7 @@ pub fn is_satisfied(node: &ConfigNode, patch: &NodePatch) -> bool {
             "*" => {}
             target_names => {
                 // TODO: OR is supported at the top-level only.
-                if !target_names.split('|').any(|name| name == node.name) {
+                if !target_names.split('|').any(|name| name == node.ident) {
                     return false;
                 }
             }

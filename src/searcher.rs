@@ -1,25 +1,26 @@
-use crate::config_node::ConfigNode;
+use std::marker::PhantomData;
+
+use crate::config_node::{ConfigNode, NodeList};
 use crate::{internal_error, Result};
 
 #[derive(Debug)]
-pub struct Searcher<'a, 'b, F> {
-    nodes: &'b mut Vec<Option<ConfigNode<'a>>>,
+pub struct Searcher<'a, F> {
     needle: F,
     active: bool,
-    idx: usize,
+    next_idx: usize,
+    _phantom: PhantomData<&'a mut ()>,
 }
 
-impl<'a, 'b, F> Searcher<'a, 'b, F>
+impl<'a, F> Searcher<'a, F>
 where
-    'a: 'b,
-    F: FnMut(&ConfigNode<'a>) -> bool + 'b,
+    F: FnMut(&ConfigNode<'a>) -> bool,
 {
-    pub fn new(nodes: &'b mut Vec<Option<ConfigNode<'a>>>, needle: F) -> Self {
+    pub fn new(needle: F) -> Self {
         Self {
-            nodes,
             needle,
             active: false,
-            idx: 0,
+            next_idx: 0,
+            _phantom: PhantomData,
         }
     }
 
@@ -27,61 +28,67 @@ where
         self.active
     }
 
-    pub fn active_index(&self) -> Option<usize> {
-        self.active.then_some(self.idx)
+    fn idx(&self) -> usize {
+        self.next_idx - 1
     }
 
-    pub fn search(&mut self) -> Result<Option<ConfigNode<'a>>> {
+    pub fn active_index(&self) -> Option<usize> {
+        self.active.then_some(self.idx())
+    }
+
+    // TODO: return a mutably borrowed `SearchResult` for a safer API.
+    pub fn search(&mut self, nodes: &mut NodeList<'a>) -> Result<Option<ConfigNode<'a>>> {
         if self.is_active() {
             internal_error("node is already active")?;
         }
-        for node in &mut self.nodes[self.idx..] {
-            self.idx += 1;
+        for node in &mut nodes[self.next_idx..] {
+            self.next_idx += 1;
             if (self.needle)(node.as_ref().expect("node is inactive")) {
+                self.active = true;
                 return Ok(Some(node.take().unwrap()));
             }
         }
         Ok(None)
     }
 
-    pub fn replace(&mut self, node: ConfigNode<'a>) -> Result {
+    pub fn replace(&mut self, nodes: &mut NodeList<'a>, node: ConfigNode<'a>) -> Result {
         if !self.is_active() {
             internal_error("cannot return node to inactive parent")?
         };
-        if self.nodes[self.idx].replace(node).is_some() {
+        if nodes[self.idx()].replace(node).is_some() {
             internal_error("element marked active is not active")?;
         }
         self.active = false;
         Ok(())
     }
 
-    pub fn delete_active(&mut self) -> Result {
+    pub fn delete_active(&mut self, nodes: &mut NodeList<'a>) -> Result {
         if !self.is_active() {
             internal_error("cannot delete node from to inactive parent")?
         };
-        if self.nodes.remove(self.idx).is_some() {
+        if nodes.remove(self.idx()).is_some() {
             internal_error("element marked active is not active")?;
         }
         self.active = false;
         Ok(())
     }
 
-    pub fn insert(&mut self, idx: usize, node: ConfigNode<'a>) -> Result {
+    pub fn insert(&mut self, idx: usize, nodes: &mut NodeList<'a>, node: ConfigNode<'a>) -> Result {
         if self.is_active() {
             internal_error("cannot insert into active parent")?;
         }
-        self.nodes.insert(idx, Some(node));
-        if idx <= self.idx {
-            self.idx += 1;
+        nodes.insert(idx, Some(node));
+        if idx <= self.next_idx {
+            self.next_idx += 1;
         }
         Ok(())
     }
 
-    pub fn push(&mut self, node: ConfigNode<'a>) -> Result {
+    pub fn push(&mut self, nodes: &mut NodeList<'a>, node: ConfigNode<'a>) -> Result {
         if self.is_active() {
             internal_error("cannot insert into active parent")?;
         }
-        self.nodes.push(Some(node));
+        nodes.push(Some(node));
         Ok(())
     }
 }

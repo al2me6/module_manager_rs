@@ -12,7 +12,7 @@ pub struct Patcher<'a, 'b> {
     file_path: Rc<Path>,
     patch: &'b NodePatch<'a>,
     database: &'b mut Database<'a>,
-    parents: Vec<usize>,
+    parents: Vec<ConfigNode<'a>>,
 }
 
 impl<'a, 'b> Patcher<'a, 'b>
@@ -35,85 +35,119 @@ where
     pub fn evaluate(mut self) -> Result {
         match &self.patch.operation {
             Op::Insert => {
-                let mut node = ConfigNode::default();
-                evaluate_node_as_pure_data(self.file_path.clone(), self.patch, &mut node)?;
+                let mut node = evaluate_node_as_pure_data(self.file_path.clone(), self.patch)?;
                 node.value.file_path = Some(self.file_path.clone());
                 // TODO: insertion order.
                 self.database.0.push(Some(node));
             }
-            Op::Copy => {}
+            Op::Rename => {
+                rt_error!(CannotRenameNode @ self.file_path)?;
+            }
             Op::CopyFrom { .. } => {}
-            Op::Edit => evaluate_recurse(
-                self.file_path.clone(),
-                self.patch,
-                &mut self.database.0,
-                &mut self.parents,
-            )?,
-            Op::EditOrCreate => {}
-            Op::DefaultValue => {}
-            Op::Delete => {}
-            Op::Rename => {}
+            Op::Copy | Op::Edit | Op::Delete | Op::EditOrCreate | Op::DefaultValue => {
+                let mut searcher = make_searcher(self.patch);
+                while let Some(mut target) = searcher.search(&mut self.database.0)? {
+                    match &self.patch.operation {
+                        Op::Copy => {
+                            let copy = target.clone();
+                            searcher.replace(&mut self.database.0, target)?;
+                            searcher.push(&mut self.database.0, copy)?;
+                            // TODO: run inside of copy.
+                        }
+                        Op::Edit => {
+                            for node_patch in &self.patch.node_patches {
+                                target = self.evaluate_recurse(node_patch, target)?;
+                            }
+                            searcher.replace(&mut self.database.0, target)?;
+                        }
+                        Op::EditOrCreate => {}
+                        Op::DefaultValue => {}
+                        Op::Delete => {
+                            searcher.delete_active(&mut self.database.0)?;
+                        }
+                        Op::Insert | Op::Rename | Op::CopyFrom { .. } => unreachable!(),
+                    }
+                }
+            }
         }
         Ok(())
     }
-}
 
-fn evaluate_recurse<'a>(
-    file_path: Rc<Path>,
-    patch: &NodePatch<'a>,
-    nodes: &mut Vec<Option<ConfigNode<'a>>>,
-    parents: &mut Vec<usize>,
-) -> Result {
-    let mut searcher = Searcher::new(nodes, |node| {
-        // TODO: indexing
-        operator::has::is_satisfied(node, patch)
-    });
-    while let Some(mut target) = searcher.search()? {
-        parents.push(searcher.active_index().unwrap());
-
+    fn evaluate_recurse(
+        &mut self,
+        patch: &NodePatch<'a>,
+        mut node: ConfigNode<'a>,
+    ) -> Result<ConfigNode<'a>> {
         for node_patch in &patch.node_patches {
-            evaluate_recurse(
-                file_path.clone(),
-                node_patch,
-                &mut target.value.nodes,
-                parents,
-            )?;
+            let mut searcher = make_searcher(patch);
+            while let Some(mut target) = searcher.search(&mut node.value.nodes)? {
+                match &node_patch.operation {
+                    Op::Insert => {
+                        // TODO: recurse??
+                        let child = evaluate_node_as_pure_data(self.file_path.clone(), node_patch)?;
+                        // TODO: insertion order.
+                        target.value.nodes.push(Some(child));
+                        searcher.replace(&mut node.value.nodes, target)?;
+                    }
+                    Op::Copy => {}
+                    Op::CopyFrom { .. } => {}
+                    Op::Edit => {
+                        self.parents.push(node);
+                        target = self.evaluate_recurse(node_patch, target)?;
+                        node = self.parents.pop().unwrap();
+                        searcher.replace(&mut node.value.nodes, target)?;
+                    }
+                    Op::EditOrCreate => {}
+                    Op::DefaultValue => {}
+                    Op::Delete => {}
+                    Op::Rename => {}
+                }
+            }
         }
-
         for key_patch in &patch.key_patches {
             match &key_patch.operation {
                 Op::Insert => {
-                    target
-                        .value
+                    node.value
                         .keys
                         .push(ConfigKey::new(key_patch.ident, key_patch.value.into()));
                 }
                 Op::Copy => {}
-                Op::CopyFrom { path, target } => {}
+                Op::CopyFrom { .. } => {}
                 Op::Edit => {}
                 Op::EditOrCreate => {}
                 Op::DefaultValue => {}
                 Op::Delete => {}
-                Op::Rename => target.name = key_patch.value,
+                Op::Rename => node.ident = key_patch.value,
             }
         }
-
-        searcher.replace(target)?;
-        parents.pop().unwrap();
+        Ok(node)
     }
-    Ok(())
 }
 
-fn evaluate_node_as_pure_data<'a>(
-    path: Rc<Path>,
-    patch: &NodePatch<'a>,
-    node: &mut ConfigNode<'a>,
-) -> Result {
+fn make_searcher<'a, 'b>(
+    patch: &'b NodePatch<'a>,
+) -> Searcher<'a, impl FnMut(&ConfigNode<'a>) -> bool + 'b> {
+    Searcher::new(|node| {
+        // TODO: indexing
+        // TODO: name wildcard
+        patch.ident == node.ident
+            && patch
+                .target_name
+                .map(|name| Some(name) == node.value.name_key())
+                .unwrap_or(true)
+            && operator::has::is_satisfied(node, patch)
+    })
+}
+
+fn evaluate_node_as_pure_data<'a>(path: Rc<Path>, patch: &NodePatch<'a>) -> Result<ConfigNode<'a>> {
     if patch.operation != Op::Insert {
         rt_error!(PatchInNonPatchNode @ path)?;
     }
 
-    node.name = patch.ident;
+    let mut node = ConfigNode {
+        ident: patch.ident,
+        ..Default::default()
+    };
 
     for key in &patch.key_patches {
         if key.operation != Op::Insert {
@@ -125,10 +159,9 @@ fn evaluate_node_as_pure_data<'a>(
     }
 
     for child_node_patch in &patch.node_patches {
-        let mut child_node = ConfigNode::default();
-        evaluate_node_as_pure_data(path.clone(), child_node_patch, &mut child_node)?;
+        let child_node = evaluate_node_as_pure_data(path.clone(), child_node_patch)?;
         node.value.nodes.push(Some(child_node));
     }
 
-    Ok(())
+    Ok(node)
 }

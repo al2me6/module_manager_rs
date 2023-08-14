@@ -34,6 +34,7 @@ pub enum PatchingError {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum RuntimeError {
+    CannotRenameNode,
     CannotCopyFromTopLevel,
     PatchInNonPatchNode,
 }
@@ -41,6 +42,9 @@ pub enum RuntimeError {
 impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::CannotRenameNode => {
+                f.write_str("the rename operator `|` cannot be applied to a node")
+            }
             Self::CannotCopyFromTopLevel => {
                 f.write_str("the copy-from operator `#` cannot be used at the top-level")
             }
