@@ -1,12 +1,13 @@
 use std::path::Path;
 use std::rc::Rc;
 
+use super::operator;
 use super::searcher::Searcher;
 use crate::config_node::{ConfigKey, ConfigNode};
 use crate::database::Database;
 use crate::node_patch::NodePatch;
-use crate::operator::Op;
-use crate::{operator, Result};
+use crate::operation::Op;
+use crate::Result;
 
 pub struct Patcher<'a, 'b> {
     file_path: Rc<Path>,

@@ -1,6 +1,6 @@
 use ksp_cfg_formatter::parser::{self, ArrayIndex, AssignmentOperator, Index, OrClause};
 
-use crate::operator::Op;
+use crate::operation::Op;
 use crate::Result;
 
 #[derive(Clone, Debug)]

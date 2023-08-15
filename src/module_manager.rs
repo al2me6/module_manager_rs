@@ -1,3 +1,4 @@
+pub mod operator;
 pub mod patcher;
 pub mod searcher;
 
@@ -8,7 +9,7 @@ use crate::module_manager::patcher::Patcher;
 use crate::pass::Pass;
 use crate::patch_set::PatchSet;
 use crate::raw_patch::RawPatches;
-use crate::{operator, Result};
+use crate::Result;
 
 pub struct ModuleManager<'a> {
     dll_passes: HashSet<String>,

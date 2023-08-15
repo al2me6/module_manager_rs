@@ -15,7 +15,7 @@ pub mod file;
 pub mod key_patch;
 pub mod module_manager;
 pub mod node_patch;
-pub mod operator;
+pub mod operation;
 pub mod patch_set;
 pub mod raw_patch;
 

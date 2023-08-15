@@ -1,7 +1,7 @@
 use ksp_cfg_formatter::parser::{self, HasPredicate, Index, OrClause};
 
 use crate::key_patch::KeyPatch;
-use crate::operator::Op;
+use crate::operation::Op;
 use crate::Result;
 
 #[derive(Clone, Debug)]
