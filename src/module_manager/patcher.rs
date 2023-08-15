@@ -37,7 +37,7 @@ where
         match &self.patch.operation {
             Op::Insert => {
                 let mut node = evaluate_node_as_pure_data(self.file_path.clone(), self.patch)?;
-                node.value.file_path = Some(self.file_path.clone());
+                node.file_path = Some(self.file_path.clone());
                 // TODO: insertion order.
                 self.database.0.push(Some(node));
             }
@@ -86,43 +86,43 @@ where
                 // TODO: recurse??
                 let child = evaluate_node_as_pure_data(self.file_path.clone(), node_patch)?;
                 // TODO: insertion order.
-                node.value.nodes.push(Some(child));
+                node.nodes.push(Some(child));
                 continue;
             }
             let mut searcher = make_searcher(node_patch);
-            while let Some((handle, mut target)) = searcher.search(&mut node.value.nodes)? {
+            while let Some((handle, mut target)) = searcher.search(&mut node.nodes)? {
                 match &node_patch.operation {
                     Op::Insert => unreachable!(),
                     Op::Copy => {
                         let mut copy = target.clone();
-                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.nodes, target)?;
                         self.parents.push(node);
                         copy = self.evaluate_recurse(node_patch, copy)?;
                         node = self.parents.pop().unwrap();
-                        searcher.push(&mut node.value.nodes, copy)?;
+                        searcher.push(&mut node.nodes, copy)?;
                         // TODO: indexing. What happens when copying a wildcard index?
                         break;
                     }
                     Op::CopyFrom { .. } => {
-                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.nodes, target)?;
                     }
                     Op::Edit => {
                         self.parents.push(node);
                         target = self.evaluate_recurse(node_patch, target)?;
                         node = self.parents.pop().unwrap();
-                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.nodes, target)?;
                     }
                     Op::EditOrCreate => {
-                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.nodes, target)?;
                     }
                     Op::DefaultValue => {
-                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.nodes, target)?;
                     }
                     Op::Delete => {
-                        searcher = handle.delete(&mut node.value.nodes)?;
+                        searcher = handle.delete(&mut node.nodes)?;
                     }
                     Op::Rename => {
-                        searcher = handle.replace(&mut node.value.nodes, target)?;
+                        searcher = handle.replace(&mut node.nodes, target)?;
                     }
                 }
             }
@@ -130,9 +130,8 @@ where
         for key_patch in &patch.key_patches {
             match &key_patch.operation {
                 Op::Insert => {
-                    node.value
-                        .keys
-                        .push(ConfigKey::new(key_patch.ident, key_patch.value.into()));
+                    node.keys
+                        .push(ConfigKey::new(key_patch.ident, key_patch.value));
                 }
                 Op::Copy => {}
                 Op::CopyFrom { .. } => {}
@@ -155,7 +154,7 @@ fn make_searcher<'a, 'b>(
         // TODO: name wildcard
         patch.ident == node.ident
             && match patch.target_name {
-                target @ Some(_) => target == node.value.name_key(),
+                target @ Some(_) => target == node.name_key(),
                 None => true,
             }
             && operator::has::is_satisfied(node, patch)
@@ -180,14 +179,12 @@ pub fn evaluate_node_as_pure_data<'a>(
             rt_error!(PatchInNonPatchNode @ path)?;
         }
         // TODO: is trimming correct?
-        node.value
-            .keys
-            .push(ConfigKey::new(key.ident, key.value.trim().into()));
+        node.keys.push(ConfigKey::new(key.ident, key.value.trim()));
     }
 
     for child_node_patch in &patch.node_patches {
         let child_node = evaluate_node_as_pure_data(path.clone(), child_node_patch)?;
-        node.value.nodes.push(Some(child_node));
+        node.nodes.push(Some(child_node));
     }
 
     Ok(node)

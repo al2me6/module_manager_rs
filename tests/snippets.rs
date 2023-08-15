@@ -64,7 +64,7 @@ fn run_snippet(path: &Path) -> anyhow::Result<()> {
                     Rc::from(path),
                     &NodePatch::from_cst(node, true)?,
                 )?;
-                data.value.file_path = Some(Rc::from(path));
+                data.file_path = Some(Rc::from(path));
                 Ok(Some(data))
             })
             .collect::<Result<Vec<_>, _>>()?,

@@ -32,11 +32,7 @@ impl<'a> NodePatch<'a> {
             is_top_level,
             operation: Op::new(node.operator, node.path.map(|path| (path, node.identifier))),
             ident: node.identifier,
-            target_name: node.name.map(|name_with_brackets| {
-                name_with_brackets
-                    .trim_start_matches('[')
-                    .trim_end_matches(']')
-            }),
+            target_name: node.name,
             has: node.has.map_or_else(Vec::new, |has| has.predicates),
             needs: node.needs.map_or_else(Vec::new, |needs| needs.or_clauses),
             index: node.index,

@@ -4,32 +4,32 @@ use std::path::Path;
 use std::rc::Rc;
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub struct Item<'a, T> {
+
+pub struct ConfigNode<'a> {
+    pub file_path: Option<Rc<Path>>,
     pub ident: &'a str,
-    pub value: T,
+    pub nodes: NodeList<'a>,
+    pub keys: Vec<ConfigKey<'a>>,
 }
 
 pub type NodeList<'a> = Vec<Option<ConfigNode<'a>>>;
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub struct NodeContents<'a> {
-    pub file_path: Option<Rc<Path>>,
-    pub nodes: NodeList<'a>,
-    pub keys: Vec<ConfigKey<'a>>,
-}
-
-pub type ConfigNode<'a> = Item<'a, NodeContents<'a>>;
-pub type ConfigKey<'a> = Item<'a, Cow<'a, str>>;
-
-impl<'a, T> Item<'a, T> {
-    pub fn new(ident: &'a str, value: T) -> Self {
-        Self { ident, value }
-    }
+pub struct ConfigKey<'a> {
+    pub ident: &'a str,
+    pub value: Cow<'a, str>,
 }
 
 impl<'a> ConfigNode<'a> {
     pub fn is_top_level(&self) -> bool {
-        self.value.is_top_level()
+        self.file_path.is_some()
+    }
+
+    pub fn name_key(&self) -> Option<&str> {
+        self.keys
+            .iter()
+            .find(|item| item.ident == "name")
+            .map(|item| item.value.as_ref())
     }
 
     pub fn fmt_into(
@@ -46,10 +46,10 @@ impl<'a> ConfigNode<'a> {
             ident = self.ident
         )?;
         writeln!(f, "{0:1$}{{", "", indent_size * indent)?;
-        for key in &self.value.keys {
+        for key in &self.keys {
             key.fmt_into(f, indent + 1, indent_size)?;
         }
-        for node in &self.value.nodes {
+        for node in &self.nodes {
             node.as_ref()
                 .unwrap()
                 .fmt_into(f, indent + 1, indent_size)?;
@@ -61,11 +61,18 @@ impl<'a> ConfigNode<'a> {
 
 impl<'a> Display for ConfigNode<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-      self.fmt_into(f, 0, 4)
+        self.fmt_into(f, 0, 4)
     }
 }
 
 impl<'a> ConfigKey<'a> {
+    pub fn new(ident: &'a str, value: impl Into<Cow<'a, str>>) -> Self {
+        Self {
+            ident,
+            value: value.into(),
+        }
+    }
+
     pub fn fmt_into(
         &self,
         f: &mut Formatter<'_>,
@@ -86,19 +93,6 @@ impl<'a> ConfigKey<'a> {
 
 impl<'a> Display for ConfigKey<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-      self.fmt_into(f, 0, 4)
-    }
-}
-
-impl<'a> NodeContents<'a> {
-    pub fn is_top_level(&self) -> bool {
-        self.file_path.is_some()
-    }
-
-    pub fn name_key(&self) -> Option<&str> {
-        self.keys
-            .iter()
-            .find(|item| item.ident == "name")
-            .map(|item| item.value.as_ref())
+        self.fmt_into(f, 0, 4)
     }
 }

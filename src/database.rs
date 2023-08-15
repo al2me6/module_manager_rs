@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::config_node::{ConfigKey, ConfigNode, NodeContents, NodeList};
+use crate::config_node::{ConfigKey, ConfigNode, NodeList};
 use crate::{internal_error, Result};
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -20,17 +20,15 @@ impl<'a> Display for Database<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for node in &self.0 {
             let node = node.as_ref().unwrap();
-            let wrapper = ConfigNode::new(
-                "URL_CONFIG",
-                NodeContents {
-                    file_path: None,
-                    nodes: vec![Some(node.clone())],
-                    keys: vec![ConfigKey::new(
-                        "parentUrl",
-                        node.value.file_path.as_ref().unwrap().to_string_lossy(),
-                    )],
-                },
-            );
+            let wrapper = ConfigNode {
+                file_path: None,
+                ident: "URL_CONFIG",
+                nodes: vec![Some(node.clone())],
+                keys: vec![ConfigKey::new(
+                    "parentUrl",
+                    node.file_path.as_ref().unwrap().to_string_lossy(),
+                )],
+            };
             wrapper.fmt_into(f, 0, 4)?;
         }
         Ok(())
