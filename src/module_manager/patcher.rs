@@ -162,7 +162,10 @@ fn make_searcher<'a, 'b>(
     })
 }
 
-fn evaluate_node_as_pure_data<'a>(path: Rc<Path>, patch: &NodePatch<'a>) -> Result<ConfigNode<'a>> {
+pub fn evaluate_node_as_pure_data<'a>(
+    path: Rc<Path>,
+    patch: &NodePatch<'a>,
+) -> Result<ConfigNode<'a>> {
     if patch.operation != Op::Insert {
         rt_error!(PatchInNonPatchNode @ path)?;
     }
@@ -176,9 +179,10 @@ fn evaluate_node_as_pure_data<'a>(path: Rc<Path>, patch: &NodePatch<'a>) -> Resu
         if key.operation != Op::Insert {
             rt_error!(PatchInNonPatchNode @ path)?;
         }
+        // TODO: is trimming correct?
         node.value
             .keys
-            .push(ConfigKey::new(key.ident, key.value.into()));
+            .push(ConfigKey::new(key.ident, key.value.trim().into()));
     }
 
     for child_node_patch in &patch.node_patches {

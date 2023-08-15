@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::config_node::{ConfigKey, ConfigNode, NodeContents, NodeList};
 use crate::{internal_error, Result};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct Database<'a>(pub NodeList<'a>);
 
 impl<'a> Database<'a> {
@@ -27,16 +27,7 @@ impl<'a> Display for Database<'a> {
                     nodes: vec![Some(node.clone())],
                     keys: vec![ConfigKey::new(
                         "parentUrl",
-                        node.value
-                            .file_path
-                            .as_ref()
-                            .unwrap()
-                            .to_string_lossy()
-                            .rsplit_once("GameData")
-                            .unwrap()
-                            .1
-                            .to_owned()
-                            .into(),
+                        node.value.file_path.as_ref().unwrap().to_string_lossy(),
                     )],
                 },
             );

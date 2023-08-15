@@ -1,7 +1,7 @@
 macro_rules! rt_error {
     ($variant:ident$(($($arg:expr),+))? @ $path:expr) => {
-        std::result::Result::Err($crate::PatchingError::Runtime {
-            path: $path.clone(),
+        ::std::result::Result::Err($crate::PatchingError::Runtime {
+            path: ::std::sync::Arc::from(&*$path),
             kind: $crate::RuntimeError::$variant$(($($arg),+))?
         })
     };
@@ -21,14 +21,14 @@ pub mod raw_patch;
 
 use std::borrow::Cow;
 use std::path::Path;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, PartialEq, Debug, thiserror::Error)]
 pub enum PatchingError {
     #[error("the parser encountered an internal error: {0}")]
     Internal(Cow<'static, str>),
     #[error("error when evaluating `{path}`: {kind}")]
-    Runtime { path: Rc<Path>, kind: RuntimeError },
+    Runtime { path: Arc<Path>, kind: RuntimeError },
 }
 
 #[derive(Clone, PartialEq, Debug)]

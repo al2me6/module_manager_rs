@@ -14,7 +14,7 @@ struct Arguments {
     game_data: PathBuf,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> anyhow::Result<()> {
     pretty_env_logger::formatted_builder()
         .filter_level(log::LevelFilter::Info)
         .init();
