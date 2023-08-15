@@ -94,7 +94,14 @@ where
                 match &node_patch.operation {
                     Op::Insert => unreachable!(),
                     Op::Copy => {
+                        let mut copy = target.clone();
                         searcher = handle.replace(&mut node.value.nodes, target)?;
+                        self.parents.push(node);
+                        copy = self.evaluate_recurse(node_patch, copy)?;
+                        node = self.parents.pop().unwrap();
+                        searcher.push(&mut node.value.nodes, copy)?;
+                        // TODO: indexing. What happens when copying a wildcard index?
+                        break;
                     }
                     Op::CopyFrom { .. } => {
                         searcher = handle.replace(&mut node.value.nodes, target)?;
