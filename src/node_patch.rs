@@ -9,7 +9,7 @@ pub struct NodePatch<'a> {
     pub is_top_level: bool,
     pub operation: Op<'a>,
     pub ident: &'a str,
-    pub target_name: Option<&'a str>,
+    pub target_name: Option<Vec<&'a str>>,
     pub has: Vec<HasPredicate<'a>>,
     pub needs: Vec<OrClause<'a>>,
     pub index: Option<Index>,

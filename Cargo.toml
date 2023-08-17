@@ -4,14 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = { version = "1.0.72" }
-clap = { version = "4.3.19", features = ["derive"] }
+anyhow = "1.0.74"
+clap = { version = "4.3.21", features = ["derive"] }
 itertools = "0.11.0"
-ksp-cfg-formatter = { git = "https://github.com/StonesmileGit/ksp-cfg-formatter.git" }
-log = "0.4.19"
+log = "0.4.20"
 pretty_env_logger = "0.5.0"
-thiserror = "1.0.44"
+thiserror = "1.0.46"
 walkdir = "2.3.3"
+
+[dependencies.ksp-cfg-formatter]
+git = "https://github.com/StonesmileGit/ksp-cfg-formatter.git"
+rev = "3d9d2608bbe2dec5427c2348f38d65b3d95b2b4a"
 
 [[test]]
 name = "snippets"

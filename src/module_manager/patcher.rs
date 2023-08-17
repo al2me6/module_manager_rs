@@ -153,10 +153,7 @@ fn make_searcher<'a, 'b>(
         // TODO: indexing
         // TODO: name wildcard
         patch.ident == node.ident
-            && match patch.target_name {
-                target @ Some(_) => target == node.name_key(),
-                None => true,
-            }
+            && operator::has::name_matches(node, patch)
             && operator::has::is_satisfied(node, patch)
     })
 }

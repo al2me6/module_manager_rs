@@ -13,3 +13,12 @@ pub fn is_satisfied(node: &ConfigNode, patch: &NodePatch) -> bool {
 pub fn evaluate_predicate(node: &ConfigNode, predicate: &HasPredicate) -> bool {
     true
 }
+
+pub fn name_matches(node: &ConfigNode, patch: &NodePatch) -> bool {
+    // TODO: surface error for OR-matching at non-top-level.
+    match (&patch.target_name, node.name_key()) {
+        (Some(targets), Some(name)) => targets.iter().any(|&target| target == name),
+        (Some(_), None) => false,
+        (None, _) => true,
+    }
+}
